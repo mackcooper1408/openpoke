@@ -45,9 +45,7 @@ def _get_twilio_client():
     try:
         from twilio.rest import Client
     except ImportError:
-        raise ImportError(
-            "Twilio SDK not installed. Run: pip install twilio"
-        )
+        raise ImportError("Twilio SDK not installed. Run: pip install twilio")
 
     settings = get_settings()
     config = _load_config()
@@ -55,7 +53,7 @@ def _get_twilio_client():
     # Prefer environment variables over stored config
     account_sid = settings.twilio_account_sid or config.get("account_sid")
     auth_token = settings.twilio_auth_token or config.get("auth_token")
-    
+
     if not account_sid or not auth_token:
         raise ValueError("Twilio credentials not configured")
 
@@ -81,12 +79,14 @@ def get_sms_status() -> JSONResponse:
             client = _get_twilio_client()
             # Try to fetch account details to verify credentials
             client.api.accounts(client.account_sid).fetch()
-            
+
             return JSONResponse(
                 content={
                     "connected": True,
                     "phone_number": phone_number,
-                    "source": "environment" if settings.twilio_account_sid else "stored",
+                    "source": (
+                        "environment" if settings.twilio_account_sid else "stored"
+                    ),
                 }
             )
         except Exception as e:
@@ -101,12 +101,10 @@ def get_sms_status() -> JSONResponse:
     return JSONResponse(content={"connected": False})
 
 
-def connect_sms(
-    account_sid: str, auth_token: str, phone_number: str
-) -> JSONResponse:
+def connect_sms(account_sid: str, auth_token: str, phone_number: str) -> JSONResponse:
     """
     Connect to Twilio SMS service with provided credentials.
-    
+
     Args:
         account_sid: Twilio Account SID
         auth_token: Twilio Auth Token
@@ -128,7 +126,7 @@ def connect_sms(
         client = Client(account_sid, auth_token)
         # Verify credentials
         client.api.accounts(account_sid).fetch()
-        
+
         # Verify phone number belongs to account
         try:
             incoming_numbers = client.incoming_phone_numbers.list(
@@ -154,9 +152,7 @@ def connect_sms(
         _save_config(config)
 
         logger.info("SMS connected successfully")
-        return JSONResponse(
-            content={"ok": True, "phone_number": phone_number}
-        )
+        return JSONResponse(content={"ok": True, "phone_number": phone_number})
 
     except Exception as e:
         logger.error("Twilio connection failed", extra={"error": str(e)})
@@ -178,19 +174,17 @@ def disconnect_sms() -> JSONResponse:
         return JSONResponse(content={"ok": True})
     except Exception as e:
         logger.error("Failed to disconnect SMS", extra={"error": str(e)})
-        return JSONResponse(
-            content={"ok": False, "error": str(e)}, status_code=500
-        )
+        return JSONResponse(content={"ok": False, "error": str(e)}, status_code=500)
 
 
 def send_sms(to_number: str, message: str) -> Dict[str, Any]:
     """
     Send an SMS message.
-    
+
     Args:
         to_number: Recipient phone number (format: +1234567890)
         message: Message text to send
-        
+
     Returns:
         Dict with success status and message details
     """
@@ -203,14 +197,10 @@ def send_sms(to_number: str, message: str) -> Dict[str, Any]:
 
     try:
         client = _get_twilio_client()
-        
+
         # Send message
-        sms = client.messages.create(
-            to=to_number,
-            from_=from_number,
-            body=message
-        )
-        
+        sms = client.messages.create(to=to_number, from_=from_number, body=message)
+
         logger.info(
             "SMS sent",
             extra={
@@ -219,14 +209,14 @@ def send_sms(to_number: str, message: str) -> Dict[str, Any]:
                 "status": sms.status,
             },
         )
-        
+
         return {
             "success": True,
             "sid": sms.sid,
             "status": sms.status,
             "to": to_number,
         }
-        
+
     except Exception as e:
         logger.error("Failed to send SMS", extra={"error": str(e), "to": to_number})
         return {
@@ -238,11 +228,11 @@ def send_sms(to_number: str, message: str) -> Dict[str, Any]:
 async def handle_incoming_sms(from_number: str, message_body: str) -> str:
     """
     Handle an incoming SMS message by routing it to the chat handler.
-    
+
     Args:
         from_number: Sender's phone number
         message_body: Message text content
-        
+
     Returns:
         Response message to send back
     """
@@ -264,16 +254,16 @@ async def handle_incoming_sms(from_number: str, message_body: str) -> str:
         from ...agents.interaction_agent.runtime import InteractionAgentRuntime
 
         runtime = InteractionAgentRuntime()
-        
+
         # Execute and get response
         # For SMS, we need a synchronous response
         response = await runtime.execute_sync(user_message=message_body)
-        
+
         # Send the response back via SMS
         send_sms(to_number=from_number, message=response)
-        
+
         return "Message processed"
-        
+
     except Exception as e:
         logger.error("Failed to process incoming SMS", extra={"error": str(e)})
         error_msg = "Sorry, I encountered an error processing your message."

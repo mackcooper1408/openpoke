@@ -136,7 +136,9 @@ class InteractionAgentRuntime:
             )
 
         except Exception as exc:
-            logger.error("Interaction agent (agent message) failed", extra={"error": str(exc)})
+            logger.error(
+                "Interaction agent (agent message) failed", extra={"error": str(exc)}
+            )
             return InteractionResult(
                 success=False,
                 response="",
@@ -241,7 +243,9 @@ class InteractionAgentRuntime:
         return message
 
     # Convert raw LLM tool calls into structured _ToolCall objects with validation
-    def _parse_tool_calls(self, raw_tool_calls: List[Dict[str, Any]]) -> List[_ToolCall]:
+    def _parse_tool_calls(
+        self, raw_tool_calls: List[Dict[str, Any]]
+    ) -> List[_ToolCall]:
         """Normalize tool call payloads from the LLM."""
 
         parsed: List[_ToolCall] = []
@@ -252,9 +256,13 @@ class InteractionAgentRuntime:
                 logger.warning("Skipping tool call without name", extra={"tool": raw})
                 continue
 
-            arguments, error = self._parse_tool_arguments(function_block.get("arguments"))
+            arguments, error = self._parse_tool_arguments(
+                function_block.get("arguments")
+            )
             if error:
-                logger.warning("Tool call arguments invalid", extra={"tool": name, "error": error})
+                logger.warning(
+                    "Tool call arguments invalid", extra={"tool": name, "error": error}
+                )
                 parsed.append(
                     _ToolCall(
                         identifier=raw.get("id"),
@@ -301,7 +309,9 @@ class InteractionAgentRuntime:
 
         if "__invalid_arguments__" in tool_call.arguments:
             error = tool_call.arguments["__invalid_arguments__"]
-            self._log_tool_invocation(tool_call, stage="rejected", detail={"error": error})
+            self._log_tool_invocation(
+                tool_call, stage="rejected", detail={"error": error}
+            )
             return ToolResult(success=False, payload={"error": error})
 
         try:

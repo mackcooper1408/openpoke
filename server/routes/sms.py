@@ -30,10 +30,10 @@ async def connect(
 ) -> JSONResponse:
     """
     Connect to Twilio SMS service.
-    
+
     Args:
         account_sid: Twilio Account SID
-        auth_token: Twilio Auth Token  
+        auth_token: Twilio Auth Token
         phone_number: Twilio phone number (format: +1234567890)
     """
     return connect_sms(account_sid, auth_token, phone_number)
@@ -49,17 +49,17 @@ async def disconnect() -> JSONResponse:
 async def webhook(request: Request) -> Response:
     """
     Webhook endpoint for receiving incoming SMS messages from Twilio.
-    
+
     Twilio will POST to this endpoint when a message is received.
     """
     try:
         # Parse form data from Twilio
         form_data = await request.form()
-        
+
         from_number = form_data.get("From", "")
         message_body = form_data.get("Body", "")
         message_sid = form_data.get("MessageSid", "")
-        
+
         logger.info(
             "SMS webhook received",
             extra={
@@ -68,18 +68,19 @@ async def webhook(request: Request) -> Response:
                 "body_length": len(message_body),
             },
         )
-        
+
         # Process the message asynchronously
         import asyncio
+
         asyncio.create_task(handle_incoming_sms(from_number, message_body))
-        
+
         # Return empty TwiML response (Twilio expects XML)
         # Since we'll send the response separately, we don't need to include it here
         return Response(
             content='<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
             media_type="application/xml",
         )
-        
+
     except Exception as e:
         logger.error("SMS webhook error", extra={"error": str(e)})
         # Still return valid TwiML even on error

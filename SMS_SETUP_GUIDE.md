@@ -23,6 +23,7 @@ pip install twilio
 ```
 
 Or add to `server/requirements.txt`:
+
 ```
 twilio>=8.0.0
 ```
@@ -66,12 +67,14 @@ Twilio needs a public URL to send incoming messages to your application.
 1. Install ngrok: `brew install ngrok` (macOS) or download from [ngrok.com](https://ngrok.com)
 
 2. Start your backend server:
+
 ```bash
 cd /path/to/openpoke
 python -m server.server
 ```
 
 3. In a new terminal, start ngrok:
+
 ```bash
 ngrok http 8001
 ```
@@ -90,6 +93,7 @@ ngrok http 8001
 #### For Production:
 
 Use your actual server URL:
+
 ```
 https://yourdomain.com/api/v1/sms/webhook
 ```
@@ -105,6 +109,7 @@ https://yourdomain.com/api/v1/sms/webhook
 Once configured, simply text your Twilio phone number as you would chat in the web interface. Your messages will be processed through the same interaction agent and you'll receive responses automatically.
 
 **Example conversation:**
+
 - You: "What's my workout schedule today?"
 - Assistant: "Let me check your Hevy workouts for today..."
 
@@ -113,16 +118,19 @@ Once configured, simply text your Twilio phone number as you would chat in the w
 ### Check Connection Status
 
 **Via Web Interface:**
+
 1. Open Settings modal
 2. Look for "SMS Text Messaging" section
 3. Status should show "Connected" with your phone number
 
 **Via API:**
+
 ```bash
 curl http://localhost:3000/api/sms/status | python3 -m json.tool
 ```
 
 Expected response:
+
 ```json
 {
   "connected": true,
@@ -140,20 +148,24 @@ curl http://localhost:8001/api/v1/sms/status | python3 -m json.tool
 ## Troubleshooting
 
 ### "Twilio SDK not installed"
+
 ```bash
 pip install twilio
 ```
 
 ### "Invalid credentials or connection error"
+
 - Verify Account SID starts with "AC"
 - Check Auth Token is correct (regenerate if needed)
 - Restart backend server after adding credentials to `.env`
 
 ### Messages not received
+
 1. Check webhook URL is correct in Twilio console
 2. Verify webhook URL is publicly accessible
 3. Check server logs for webhook errors: `tail -f server/logs/*.log`
 4. Test webhook manually:
+
 ```bash
 curl -X POST http://localhost:8001/api/v1/sms/webhook \
   -d "From=%2B1234567890" \
@@ -162,12 +174,14 @@ curl -X POST http://localhost:8001/api/v1/sms/webhook \
 ```
 
 ### No response sent
+
 - Check interaction agent is working (test via web interface)
 - Verify Twilio phone number is correct
 - Check server logs for errors during message processing
 - Ensure sufficient Twilio account balance
 
 ### ngrok URL keeps changing
+
 - Free ngrok URLs change on restart
 - Update Twilio webhook URL each time ngrok restarts
 - Consider ngrok paid plan for persistent URLs, or deploy to production
@@ -223,6 +237,7 @@ if from_number not in ALLOWED_NUMBERS:
 ### Rate Limiting
 
 Consider adding rate limiting to prevent abuse:
+
 ```python
 from fastapi_limiter import FastAPILimiter
 ```
@@ -237,6 +252,7 @@ from fastapi_limiter import FastAPILimiter
 ## Support
 
 For issues or questions:
+
 1. Check server logs for error messages
 2. Verify Twilio console shows message delivery
 3. Test webhook endpoint manually

@@ -7,6 +7,7 @@ I've successfully added SMS text messaging capability to your OpenPoke AI assist
 ### Backend Components
 
 1. **SMS Service Client** (`server/services/sms/client.py`)
+
    - Twilio SDK integration
    - Credential management (environment variables + file storage)
    - Connection status checking
@@ -14,12 +15,14 @@ I've successfully added SMS text messaging capability to your OpenPoke AI assist
    - Incoming SMS handler that routes to interaction agent
 
 2. **API Routes** (`server/routes/sms.py`)
+
    - `GET /api/v1/sms/status` - Check connection status
    - `POST /api/v1/sms/connect` - Connect with Twilio credentials
    - `POST /api/v1/sms/disconnect` - Disconnect SMS
    - `POST /api/v1/sms/webhook` - Receive incoming messages from Twilio
 
 3. **Configuration Updates** (`server/config.py`)
+
    - Added Twilio credentials settings
    - Environment variable support for:
      - `TWILIO_ACCOUNT_SID`
@@ -33,6 +36,7 @@ I've successfully added SMS text messaging capability to your OpenPoke AI assist
 ### Frontend Components
 
 1. **Next.js API Proxy Routes** (`web/app/api/sms/*/route.ts`)
+
    - Status check endpoint
    - Connect endpoint
    - Disconnect endpoint
@@ -57,6 +61,7 @@ I've successfully added SMS text messaging capability to your OpenPoke AI assist
 ## 🎯 How It Works
 
 1. **Incoming Message Flow**:
+
    ```
    User texts Twilio number
    → Twilio webhook sends to /api/v1/sms/webhook
@@ -73,12 +78,14 @@ I've successfully added SMS text messaging capability to your OpenPoke AI assist
 ## 📋 Next Steps for You
 
 ### 1. Install Dependencies
+
 ```bash
 cd /path/to/openpoke
 pip install twilio
 ```
 
 ### 2. Get Twilio Account
+
 - Sign up at [twilio.com/try-twilio](https://www.twilio.com/try-twilio)
 - Get free trial credit
 - Purchase or get trial phone number
@@ -87,6 +94,7 @@ pip install twilio
 
 **Option A: Environment Variables (Recommended)**
 Add to `.env`:
+
 ```bash
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_auth_token
@@ -94,6 +102,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 ```
 
 **Option B: Web Interface**
+
 1. Start servers
 2. Open Settings modal
 3. Fill in SMS section
@@ -102,6 +111,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 ### 4. Setup Webhook
 
 **For Local Testing:**
+
 ```bash
 # Terminal 1
 python -m server.server
@@ -111,6 +121,7 @@ ngrok http 8001
 ```
 
 Then configure Twilio:
+
 1. Go to console.twilio.com → Phone Numbers
 2. Click your number
 3. Set webhook: `https://your-ngrok-url.ngrok.io/api/v1/sms/webhook`
@@ -121,21 +132,25 @@ Then configure Twilio:
 Use your actual server URL: `https://yourdomain.com/api/v1/sms/webhook`
 
 ### 5. Test It!
+
 Send a text to your Twilio number and get a response! 🎉
 
 ## 🔍 Testing
 
 ### Check Backend Status
+
 ```bash
 curl http://localhost:8001/api/v1/sms/status | python3 -m json.tool
 ```
 
 ### Check Frontend Proxy
+
 ```bash
 curl http://localhost:3000/api/sms/status | python3 -m json.tool
 ```
 
 ### Test Webhook Manually
+
 ```bash
 curl -X POST http://localhost:8001/api/v1/sms/webhook \
   -d "From=+1234567890" \
@@ -146,6 +161,7 @@ curl -X POST http://localhost:8001/api/v1/sms/webhook \
 ## 📁 Files Created/Modified
 
 ### New Files
+
 - `server/services/sms/__init__.py`
 - `server/services/sms/client.py`
 - `server/routes/sms.py`
@@ -157,6 +173,7 @@ curl -X POST http://localhost:8001/api/v1/sms/webhook \
 - `IMPLEMENTATION_SUMMARY.md` (this file)
 
 ### Modified Files
+
 - `server/config.py` - Added Twilio settings
 - `server/routes/__init__.py` - Registered SMS router
 - `server/agents/interaction_agent/runtime.py` - Added execute_sync method
@@ -184,16 +201,19 @@ curl -X POST http://localhost:8001/api/v1/sms/webhook \
 ### Common Issues
 
 1. **"Twilio SDK not installed"**
+
    ```bash
    pip install twilio
    ```
 
 2. **"Invalid credentials"**
+
    - Verify Account SID starts with "AC"
    - Check Auth Token is correct
    - Restart server after adding to `.env`
 
 3. **Messages not received**
+
    - Verify webhook URL in Twilio console
    - Check ngrok is running
    - Ensure webhook URL is publicly accessible
@@ -227,6 +247,7 @@ See **SMS_SETUP_GUIDE.md** for detailed troubleshooting.
 ## ✨ What's Next?
 
 Some ideas for enhancement:
+
 - Add phone number whitelist for security
 - Implement rate limiting
 - Add SMS delivery status tracking

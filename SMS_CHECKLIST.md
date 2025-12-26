@@ -31,6 +31,7 @@ Use this checklist to set up SMS text messaging for your OpenPoke assistant.
 Choose ONE option:
 
 ### Option A: Environment Variables (Recommended)
+
 - [ ] Add to `.env` file:
   ```bash
   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -40,6 +41,7 @@ Choose ONE option:
 - [ ] Restart backend server
 
 ### Option B: Web Interface
+
 - [ ] Open [http://localhost:3000](http://localhost:3000)
 - [ ] Click Settings (gear icon)
 - [ ] Scroll to "SMS Text Messaging" section
@@ -78,15 +80,19 @@ Choose ONE option:
 Run these to verify setup:
 
 - [ ] Backend status:
+
   ```bash
   curl http://localhost:8001/api/v1/sms/status | python3 -m json.tool
   ```
+
   Should show: `"connected": true`
 
 - [ ] Frontend proxy status:
+
   ```bash
   curl http://localhost:3000/api/sms/status | python3 -m json.tool
   ```
+
   Should show: `"connected": true`
 
 - [ ] Manual webhook test:
@@ -131,14 +137,14 @@ If SMS not working:
 
 ## 📋 Quick Reference
 
-| What | Where |
-|------|-------|
-| Backend SMS API | `http://localhost:8001/api/v1/sms/*` |
-| Frontend Proxy | `http://localhost:3000/api/sms/*` |
-| Webhook Endpoint | `/api/v1/sms/webhook` |
-| Twilio Console | [console.twilio.com](https://console.twilio.com) |
+| What                 | Where                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| Backend SMS API      | `http://localhost:8001/api/v1/sms/*`                                                                     |
+| Frontend Proxy       | `http://localhost:3000/api/sms/*`                                                                        |
+| Webhook Endpoint     | `/api/v1/sms/webhook`                                                                                    |
+| Twilio Console       | [console.twilio.com](https://console.twilio.com)                                                         |
 | Twilio Phone Numbers | [console.twilio.com/phone-numbers](https://console.twilio.com/us1/develop/phone-numbers/manage/incoming) |
-| ngrok Dashboard | [dashboard.ngrok.com](https://dashboard.ngrok.com) |
+| ngrok Dashboard      | [dashboard.ngrok.com](https://dashboard.ngrok.com)                                                       |
 
 ## 📚 Documentation
 
@@ -150,6 +156,7 @@ If SMS not working:
 ## ✨ Success!
 
 When complete, you should be able to:
+
 - ✅ Text your Twilio number
 - ✅ Receive AI assistant responses
 - ✅ Have full conversations via SMS
