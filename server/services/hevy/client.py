@@ -277,14 +277,25 @@ def get_workout_details(workout_id: str) -> Dict[str, Any]:
     return _make_hevy_request(f"workouts/{workout_id}")
 
 
-def get_routines() -> Dict[str, Any]:
+def get_routines(
+    page: int = 1,
+    page_size: int = 50,
+) -> Dict[str, Any]:
     """
-    Fetch all workout routines from Hevy.
+    Fetch workout routines from Hevy.
+
+    Args:
+        page: Page number (1-indexed)
+        page_size: Number of routines per page
 
     Returns:
-        Dictionary containing routine data
+        Dictionary containing routine data with 'routines' key
     """
-    return _make_hevy_request("routines")
+    params = {
+        "page": page,
+        "pageSize": page_size,
+    }
+    return _make_hevy_request("routines", params=params)
 
 
 def get_routine_details(routine_id: str) -> Dict[str, Any]:
@@ -300,19 +311,35 @@ def get_routine_details(routine_id: str) -> Dict[str, Any]:
     return _make_hevy_request(f"routines/{routine_id}")
 
 
-def create_routine(routine_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_routine(
+    title: str, exercises: List[Dict[str, Any]], folder_id: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Create a new workout routine in Hevy.
 
     Args:
-        routine_data: Dictionary containing routine information
-            - name: Routine name
-            - exercises: List of exercises with sets/reps
+        title: Routine name/title
+        exercises: List of exercises with structure:
+            - exercise_template_id: str - Exercise template ID
+            - superset_id: Optional[int] - Superset grouping
+            - rest_seconds: Optional[int] - Rest time
+            - sets: List of sets with type and weight_kg/reps/distance_meters/duration_seconds
+        folder_id: Optional folder ID to organize the routine
 
     Returns:
         Dictionary containing created routine data
     """
-    return _make_hevy_request("routines", method="POST", json_data=routine_data)
+    # Wrap in 'routine' object as per Hevy API requirements
+    # folder_id=null inserts into default "My Routines" folder
+    request_body = {
+        "routine": {
+            "title": title,
+            "exercises": exercises,
+            "folder_id": folder_id,  # null/None = default "My Routines" folder
+        }
+    }
+
+    return _make_hevy_request("routines", method="POST", json_data=request_body)
 
 
 def log_workout(workout_data: Dict[str, Any]) -> Dict[str, Any]:

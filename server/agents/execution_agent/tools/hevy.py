@@ -72,7 +72,18 @@ _SCHEMAS: List[Dict[str, Any]] = [
             "description": "Fetch all saved workout routines from Hevy to see planned workouts and templates.",
             "parameters": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "description": "Page number for pagination (default: 1).",
+                        "default": 1,
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "description": "Number of routines per page (default: 50).",
+                        "default": 50,
+                    },
+                },
                 "additionalProperties": False,
             },
         },
@@ -103,38 +114,74 @@ _SCHEMAS: List[Dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
+                    "title": {
                         "type": "string",
-                        "description": "Name of the workout routine (e.g., 'Upper Body Strength').",
+                        "description": "Name/title of the workout routine (e.g., 'Upper Body Strength').",
                     },
                     "exercises": {
                         "type": "array",
-                        "description": "List of exercises in the routine.",
+                        "description": "List of exercises in the routine. Each exercise needs exercise_template_id and sets array.",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "exercise_id": {
+                                "exercise_template_id": {
                                     "type": "string",
-                                    "description": "Hevy exercise identifier.",
+                                    "description": "Hevy exercise template identifier (get from exercise_templates endpoint).",
                                 },
-                                "sets": {
+                                "superset_id": {
                                     "type": "integer",
-                                    "description": "Number of sets.",
-                                },
-                                "reps": {
-                                    "type": "integer",
-                                    "description": "Target reps per set.",
+                                    "description": "Optional superset grouping ID for exercises performed together.",
                                 },
                                 "rest_seconds": {
                                     "type": "integer",
                                     "description": "Rest time between sets in seconds.",
                                 },
+                                "sets": {
+                                    "type": "array",
+                                    "description": "Array of sets for this exercise.",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "description": "Set type: 'normal', 'warmup', 'dropset', or 'failure'.",
+                                                "enum": [
+                                                    "normal",
+                                                    "warmup",
+                                                    "dropset",
+                                                    "failure",
+                                                ],
+                                            },
+                                            "weight_kg": {
+                                                "type": "number",
+                                                "description": "Target weight in kilograms.",
+                                            },
+                                            "reps": {
+                                                "type": "integer",
+                                                "description": "Target number of reps.",
+                                            },
+                                            "distance_meters": {
+                                                "type": "number",
+                                                "description": "Distance in meters (for cardio exercises).",
+                                            },
+                                            "duration_seconds": {
+                                                "type": "integer",
+                                                "description": "Duration in seconds (for timed exercises).",
+                                            },
+                                        },
+                                        "required": ["type"],
+                                    },
+                                },
                             },
-                            "required": ["exercise_id", "sets", "reps"],
+                            "required": ["exercise_template_id", "sets"],
                         },
                     },
+                    "folder_id": {
+                        "type": "string",
+                        "description": "Optional folder ID to organize this routine.",
+                    },
                 },
-                "required": ["name", "exercises"],
+                "required": ["title", "exercises"],
                 "additionalProperties": False,
             },
         },
@@ -225,11 +272,11 @@ def _hevy_get_workout_details(workout_id: str) -> str:
         return f"Error fetching workout details: {str(exc)}"
 
 
-def _hevy_get_routines() -> str:
+def _hevy_get_routines(page: int = 1, page_size: int = 50) -> str:
     """Fetch all workout routines."""
     try:
-        data = get_routines()
-        logger.info("Retrieved Hevy routines")
+        data = get_routines(page, page_size)
+        logger.info(f"Retrieved Hevy routines (page {page}, size {page_size})")
         return str(data)
     except Exception as exc:
         logger.error(f"Failed to get Hevy routines: {exc}")
@@ -247,15 +294,13 @@ def _hevy_get_routine_details(routine_id: str) -> str:
         return f"Error fetching routine details: {str(exc)}"
 
 
-def _hevy_create_routine(name: str, exercises: List[Dict[str, Any]]) -> str:
+def _hevy_create_routine(
+    title: str, exercises: List[Dict[str, Any]], folder_id: str = None
+) -> str:
     """Create a new workout routine."""
     try:
-        routine_data = {
-            "name": name,
-            "exercises": exercises,
-        }
-        data = create_routine(routine_data)
-        logger.info(f"Created Hevy routine: {name}")
+        data = create_routine(title, exercises, folder_id)
+        logger.info(f"Created Hevy routine: {title}")
         return str(data)
     except Exception as exc:
         logger.error(f"Failed to create Hevy routine: {exc}")
