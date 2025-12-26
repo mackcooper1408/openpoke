@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type Settings = {
@@ -49,7 +49,10 @@ function deriveEmailFromPayload(payload: any): string {
 
   if (profileSlice && typeof profileSlice === 'object') {
     candidateObjects.push(profileSlice);
-    if ((profileSlice as any).response_data && typeof (profileSlice as any).response_data === 'object') {
+    if (
+      (profileSlice as any).response_data &&
+      typeof (profileSlice as any).response_data === 'object'
+    ) {
       candidateObjects.push((profileSlice as any).response_data);
     }
     if (Array.isArray((profileSlice as any).items)) {
@@ -79,7 +82,7 @@ function deriveEmailFromPayload(payload: any): string {
       obj?.user?.email_address,
       obj?.data?.email,
       obj?.data?.emailAddress,
-      obj?.data?.email_address,
+      obj?.data?.email_address
     );
     const emailAddresses = (obj as any).emailAddresses;
     if (Array.isArray(emailAddresses)) {
@@ -118,6 +121,19 @@ export default function SettingsModal({
   const [gmailEmail, setGmailEmail] = useState('');
   const [gmailConnId, setGmailConnId] = useState('');
   const [gmailProfile, setGmailProfile] = useState<Record<string, unknown> | null>(null);
+
+  // Whoop state
+  const [whoopConnected, setWhoopConnected] = useState(false);
+  const [whoopStatusMessage, setWhoopStatusMessage] = useState('');
+  const [isConnectingWhoop, setIsConnectingWhoop] = useState(false);
+  const [isDisconnectingWhoop, setIsDisconnectingWhoop] = useState(false);
+
+  // Hevy state
+  const [hevyConnected, setHevyConnected] = useState(false);
+  const [hevyStatusMessage, setHevyStatusMessage] = useState('');
+  const [hevyApiKey, setHevyApiKey] = useState('');
+  const [isConnectingHevy, setIsConnectingHevy] = useState(false);
+  const [isDisconnectingHevy, setIsDisconnectingHevy] = useState(false);
 
   const readStoredUserId = useCallback(() => {
     if (typeof window === 'undefined') return '';
@@ -172,6 +188,59 @@ export default function SettingsModal({
     } catch {}
   }, []);
 
+  // Check Whoop connection status on mount and after OAuth callback
+  useEffect(() => {
+    const checkWhoopStatus = async () => {
+      try {
+        const resp = await fetch('/api/whoop/status');
+        const data = await resp.json();
+        if (data?.connected) {
+          setWhoopConnected(true);
+          setWhoopStatusMessage('Whoop connected');
+        } else {
+          setWhoopConnected(false);
+          setWhoopStatusMessage('');
+        }
+      } catch {}
+    };
+    void checkWhoopStatus();
+
+    // Check URL params for OAuth callback results
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const whoopConnected = params.get('whoop_connected');
+      const whoopError = params.get('whoop_error');
+
+      if (whoopConnected === 'true') {
+        setWhoopStatusMessage('Whoop connected successfully!');
+        void checkWhoopStatus(); // Refresh status
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else if (whoopError) {
+        setWhoopStatusMessage(`Connection failed: ${decodeURIComponent(whoopError)}`);
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, []);
+
+  // Check Hevy connection status on mount
+  useEffect(() => {
+    const checkHevyStatus = async () => {
+      try {
+        const resp = await fetch('/api/hevy/status');
+        const data = await resp.json();
+        if (data?.connected) {
+          setHevyConnected(true);
+          setHevyStatusMessage('Hevy connected');
+        }
+      } catch {}
+    };
+    void checkHevyStatus();
+  }, []);
+
   const gmailProfileDetails = useMemo(() => {
     if (!gmailProfile) return [] as { label: string; value: string }[];
     const details: { label: string; value: string }[] = [];
@@ -219,7 +288,9 @@ export default function SettingsModal({
       setGmailProfile(null);
       if (url) {
         window.open(url, '_blank', 'noopener');
-        setGmailStatusMessage('Gmail authorization opened in a new tab. Complete it, then press “Refresh status”.');
+        setGmailStatusMessage(
+          'Gmail authorization opened in a new tab. Complete it, then press “Refresh status”.'
+        );
       } else {
         setGmailStatusMessage('Connection initiated. Refresh status once authorization completes.');
       }
@@ -264,7 +335,10 @@ export default function SettingsModal({
         setGmailConnId(connectionRequestId);
       }
 
-      const profileData = data?.profile && typeof data.profile === 'object' ? (data.profile as Record<string, unknown>) : null;
+      const profileData =
+        data?.profile && typeof data.profile === 'object'
+          ? (data.profile as Record<string, unknown>)
+          : null;
       setGmailProfile(profileData);
 
       const derivedEmail = deriveEmailFromPayload({ email: data?.email, profile: profileData });
@@ -276,7 +350,12 @@ export default function SettingsModal({
 
       if (connected) {
         const source = typeof data?.profile_source === 'string' ? data.profile_source : '';
-        const sourceNote = source === 'fetched' ? 'Verified moments ago.' : source === 'cache' ? 'Loaded from cache.' : '';
+        const sourceNote =
+          source === 'fetched'
+            ? 'Verified moments ago.'
+            : source === 'cache'
+            ? 'Loaded from cache.'
+            : '';
         const message = email ? `Connected as ${email}` : 'Gmail connected.';
         setGmailStatusMessage(sourceNote ? `${message} ${sourceNote}` : message);
         try {
@@ -287,9 +366,10 @@ export default function SettingsModal({
           }
         } catch {}
       } else {
-        const statusText = typeof data?.status === 'string' && data.status && data.status !== 'UNKNOWN'
-          ? `Status: ${data.status}`
-          : 'Not connected yet.';
+        const statusText =
+          typeof data?.status === 'string' && data.status && data.status !== 'UNKNOWN'
+            ? `Status: ${data.status}`
+            : 'Not connected yet.';
         setGmailStatusMessage(statusText);
         try {
           localStorage.removeItem('gmail_connected');
@@ -348,6 +428,122 @@ export default function SettingsModal({
     }
   }, [readStoredConnectionRequestId, readStoredUserId]);
 
+  const handleConnectWhoop = useCallback(async () => {
+    try {
+      setIsConnectingWhoop(true);
+      setWhoopStatusMessage('Opening Whoop authorization...');
+      // Redirect directly to backend which will redirect to Whoop OAuth
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+      window.location.href = `${backendUrl}/api/v1/whoop/connect`;
+    } catch (e: any) {
+      setWhoopStatusMessage(e?.message || 'Failed to connect Whoop');
+      setIsConnectingWhoop(false);
+    }
+  }, []);
+
+  const handleDisconnectWhoop = useCallback(async () => {
+    if (typeof window !== 'undefined') {
+      const proceed = window.confirm('Disconnect Whoop from OpenPoke?');
+      if (!proceed) return;
+    }
+
+    try {
+      setIsDisconnectingWhoop(true);
+      setWhoopStatusMessage('Disconnecting Whoop...');
+      const resp = await fetch('/api/whoop/disconnect', { method: 'POST' });
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.success) {
+        setWhoopStatusMessage(data?.message || 'Failed to disconnect');
+        return;
+      }
+
+      setWhoopConnected(false);
+      setWhoopStatusMessage('Whoop disconnected');
+    } catch (e: any) {
+      setWhoopStatusMessage(e?.message || 'Failed to disconnect Whoop');
+    } finally {
+      setIsDisconnectingWhoop(false);
+    }
+  }, []);
+
+  const refreshWhoopStatus = useCallback(async () => {
+    try {
+      setWhoopStatusMessage('Checking Whoop status...');
+      const resp = await fetch('/api/whoop/status');
+      const data = await resp.json();
+      console.log('refreshWhoopStatus response:', data);
+
+      if (data?.connected) {
+        setWhoopConnected(true);
+        setWhoopStatusMessage('Whoop connected');
+      } else {
+        setWhoopConnected(false);
+        setWhoopStatusMessage('Whoop not connected');
+      }
+    } catch (e: any) {
+      setWhoopStatusMessage(e?.message || 'Failed to check Whoop status');
+    }
+  }, []);
+
+  const handleConnectHevy = useCallback(async () => {
+    if (!hevyApiKey.trim()) {
+      setHevyStatusMessage('Please enter your Hevy API key');
+      return;
+    }
+
+    try {
+      setIsConnectingHevy(true);
+      setHevyStatusMessage('Validating API key...');
+      const resp = await fetch('/api/hevy/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: hevyApiKey.trim() }),
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.success) {
+        setHevyStatusMessage(data?.message || 'Invalid API key');
+        return;
+      }
+
+      setHevyConnected(true);
+      setHevyStatusMessage('Hevy connected successfully');
+      setHevyApiKey('');
+    } catch (e: any) {
+      setHevyStatusMessage(e?.message || 'Failed to connect Hevy');
+    } finally {
+      setIsConnectingHevy(false);
+    }
+  }, [hevyApiKey]);
+
+  const handleDisconnectHevy = useCallback(async () => {
+    if (typeof window !== 'undefined') {
+      const proceed = window.confirm('Disconnect Hevy from OpenPoke?');
+      if (!proceed) return;
+    }
+
+    try {
+      setIsDisconnectingHevy(true);
+      setHevyStatusMessage('Disconnecting Hevy...');
+      const resp = await fetch('/api/hevy/disconnect', { method: 'POST' });
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.success) {
+        setHevyStatusMessage(data?.message || 'Failed to disconnect');
+        return;
+      }
+
+      setHevyConnected(false);
+      setHevyStatusMessage('Hevy disconnected');
+      setHevyApiKey('');
+    } catch (e: any) {
+      setHevyStatusMessage(e?.message || 'Failed to disconnect Hevy');
+    } finally {
+      setIsDisconnectingHevy(false);
+    }
+  }, []);
+
   useEffect(() => {
     setTimezone(settings.timezone);
   }, [settings]);
@@ -359,20 +555,28 @@ export default function SettingsModal({
 
   if (!open) return null;
 
-  const connectButtonLabel = connectingGmail ? 'Opening…' : gmailConnected ? 'Reconnect' : 'Connect Gmail';
+  const connectButtonLabel = connectingGmail
+    ? 'Opening…'
+    : gmailConnected
+    ? 'Reconnect'
+    : 'Connect Gmail';
   const refreshButtonLabel = isRefreshingGmail ? 'Refreshing…' : 'Refresh status';
   const disconnectButtonLabel = isDisconnecting ? 'Disconnecting…' : 'Disconnect';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="card w-full max-w-lg p-6">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="card w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex-shrink-0 p-6 pb-4 flex items-center justify-between border-b border-gray-200">
           <h2 className="text-lg font-semibold">Settings</h2>
-          <button onClick={onClose} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close settings">
+          <button
+            onClick={onClose}
+            className="rounded-md p-2 hover:bg-gray-100"
+            aria-label="Close settings"
+          >
             ✕
           </button>
         </div>
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Timezone</label>
             <input
@@ -384,7 +588,9 @@ export default function SettingsModal({
               readOnly={!timezone}
             />
             <p className="mt-1 text-xs text-gray-500">
-              {timezone ? 'Auto-detected from browser. Edit to override.' : 'Will be auto-detected on next page load.'}
+              {timezone
+                ? 'Auto-detected from browser. Edit to override.'
+                : 'Will be auto-detected on next page load.'}
             </p>
           </div>
           <div className="pt-2">
@@ -411,26 +617,41 @@ export default function SettingsModal({
               {gmailConnected ? (
                 <div className="mt-4 space-y-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Connected account</div>
-                    <div className="mt-1 text-sm font-medium text-gray-900">{gmailEmail || 'Email unavailable'}</div>
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500">
+                      Connected account
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-gray-900">
+                      {gmailEmail || 'Email unavailable'}
+                    </div>
                   </div>
                   {gmailProfileDetails.length > 0 && (
                     <dl className="grid grid-cols-1 gap-2 text-xs text-gray-600 sm:grid-cols-3">
                       {gmailProfileDetails.map((item) => (
-                        <div key={item.label} className="rounded-md border border-gray-200 bg-white/80 p-2">
-                          <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{item.label}</dt>
+                        <div
+                          key={item.label}
+                          className="rounded-md border border-gray-200 bg-white/80 p-2"
+                        >
+                          <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                            {item.label}
+                          </dt>
                           <dd className="mt-1 text-sm font-medium text-gray-900">{item.value}</dd>
                         </div>
                       ))}
                     </dl>
                   )}
                   {gmailStatusMessage && (
-                    <p className="text-xs text-gray-500" aria-live="polite">{gmailStatusMessage}</p>
+                    <p className="text-xs text-gray-500" aria-live="polite">
+                      {gmailStatusMessage}
+                    </p>
                   )}
                 </div>
               ) : (
-                <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500" aria-live="polite">
-                  {gmailStatusMessage || 'Complete the connection to view your Gmail account details here.'}
+                <div
+                  className="mt-4 rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500"
+                  aria-live="polite"
+                >
+                  {gmailStatusMessage ||
+                    'Complete the connection to view your Gmail account details here.'}
                 </div>
               )}
 
@@ -466,11 +687,149 @@ export default function SettingsModal({
                 )}
               </div>
             </div>
+
+            {/* Whoop Integration */}
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">Whoop</div>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Connect Whoop to track recovery, sleep, and strain data for personalized fitness
+                    coaching.
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
+                    whoopConnected
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  }`}
+                >
+                  {whoopConnected ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+
+              <div
+                className="mt-4 rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500"
+                aria-live="polite"
+              >
+                {whoopStatusMessage ||
+                  'Connect Whoop to enable fitness tracking and recovery monitoring.'}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={handleConnectWhoop}
+                  disabled={isConnectingWhoop || isDisconnectingWhoop}
+                  aria-busy={isConnectingWhoop}
+                >
+                  {isConnectingWhoop ? 'Opening…' : whoopConnected ? 'Reconnect' : 'Connect Whoop'}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={refreshWhoopStatus}
+                  disabled={isConnectingWhoop}
+                >
+                  Refresh status
+                </button>
+                {whoopConnected && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-transparent bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleDisconnectWhoop}
+                    disabled={isDisconnectingWhoop}
+                    aria-busy={isDisconnectingWhoop}
+                  >
+                    {isDisconnectingWhoop ? 'Disconnecting…' : 'Disconnect'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Hevy Integration */}
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">Hevy</div>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Connect Hevy to track workouts, create routines, and monitor your training
+                    progress.
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
+                    hevyConnected
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  }`}
+                >
+                  {hevyConnected ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+
+              {!hevyConnected && (
+                <div className="mt-4">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Hevy API Key
+                  </label>
+                  <input
+                    className="input w-full"
+                    type="password"
+                    value={hevyApiKey}
+                    onChange={(e) => setHevyApiKey(e.target.value)}
+                    placeholder="Enter your Hevy API key"
+                    disabled={isConnectingHevy}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Get your API key from Hevy app settings.
+                  </p>
+                </div>
+              )}
+
+              <div
+                className="mt-4 rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500"
+                aria-live="polite"
+              >
+                {hevyStatusMessage || 'Enter your Hevy API key to connect.'}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {!hevyConnected ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={handleConnectHevy}
+                    disabled={isConnectingHevy || !hevyApiKey.trim()}
+                    aria-busy={isConnectingHevy}
+                  >
+                    {isConnectingHevy ? 'Connecting…' : 'Connect Hevy'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="rounded-md border border-transparent bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleDisconnectHevy}
+                    disabled={isDisconnectingHevy}
+                    aria-busy={isDisconnectingHevy}
+                  >
+                    {isDisconnectingHevy ? 'Disconnecting…' : 'Disconnect'}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cancel</button>
+        <div className="flex-shrink-0 p-6 pt-4 flex justify-end gap-2 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
           <button
             className="btn"
             onClick={() => {

@@ -59,11 +59,27 @@ class Settings(BaseModel):
 
     # Credentials / integrations
     openrouter_api_key: Optional[str] = Field(default=os.getenv("OPENROUTER_API_KEY"))
-    composio_gmail_auth_config_id: Optional[str] = Field(default=os.getenv("COMPOSIO_GMAIL_AUTH_CONFIG_ID"))
+    composio_gmail_auth_config_id: Optional[str] = Field(
+        default=os.getenv("COMPOSIO_GMAIL_AUTH_CONFIG_ID")
+    )
     composio_api_key: Optional[str] = Field(default=os.getenv("COMPOSIO_API_KEY"))
 
+    # Whoop integration
+    whoop_client_id: Optional[str] = Field(default=os.getenv("WHOOP_CLIENT_ID"))
+    whoop_client_secret: Optional[str] = Field(default=os.getenv("WHOOP_CLIENT_SECRET"))
+    whoop_redirect_uri: Optional[str] = Field(
+        default=os.getenv(
+            "WHOOP_REDIRECT_URI", "http://localhost:3000/api/whoop/callback"
+        )
+    )
+
+    # Hevy integration
+    hevy_api_key: Optional[str] = Field(default=os.getenv("HEVY_API_KEY"))
+
     # HTTP behaviour
-    cors_allow_origins_raw: str = Field(default=os.getenv("OPENPOKE_CORS_ALLOW_ORIGINS", "*"))
+    cors_allow_origins_raw: str = Field(
+        default=os.getenv("OPENPOKE_CORS_ALLOW_ORIGINS", "*")
+    )
     enable_docs: bool = Field(default=os.getenv("OPENPOKE_ENABLE_DOCS", "1") != "0")
     docs_url: Optional[str] = Field(default=os.getenv("OPENPOKE_DOCS_URL", "/docs"))
 
@@ -76,7 +92,11 @@ class Settings(BaseModel):
         """Parse CORS origins from comma-separated string."""
         if self.cors_allow_origins_raw.strip() in {"", "*"}:
             return ["*"]
-        return [origin.strip() for origin in self.cors_allow_origins_raw.split(",") if origin.strip()]
+        return [
+            origin.strip()
+            for origin in self.cors_allow_origins_raw.split(",")
+            if origin.strip()
+        ]
 
     @property
     def resolved_docs_url(self) -> Optional[str]:
