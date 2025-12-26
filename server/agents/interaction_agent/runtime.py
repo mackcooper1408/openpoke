@@ -96,6 +96,18 @@ class InteractionAgentRuntime:
                 error=str(exc),
             )
 
+    # Synchronous execution for SMS - returns response text directly
+    async def execute_sync(self, user_message: str) -> str:
+        """
+        Handle a user message and return the response text.
+        Used for SMS where we need an immediate response.
+        """
+        result = await self.execute(user_message)
+        if result.success:
+            return result.response or "Message received"
+        else:
+            return "Sorry, I encountered an error processing your message."
+
     # Handle incoming messages from execution agents and generate appropriate responses
     async def handle_agent_message(self, agent_message: str) -> InteractionResult:
         """Process a status update emitted by an execution agent."""

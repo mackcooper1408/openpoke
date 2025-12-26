@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-OpenPoke is an AI-powered personal assistant application with a Python/FastAPI backend and Next.js frontend. The system uses tool-based agents to interact with external services like Gmail, Whoop (fitness tracking), and Hevy (workout management).
+OpenPoke is an AI-powered personal assistant application with a Python/FastAPI backend and Next.js frontend. The system uses tool-based agents to interact with external services like Gmail, Whoop (fitness tracking), Hevy (workout management), and Twilio (SMS text messaging).
 
 ## Architecture
 
@@ -194,6 +194,11 @@ Add to `.env` file in project root:
 {SERVICE}_CLIENT_SECRET=your_client_secret
 {SERVICE}_REDIRECT_URI=http://localhost:3000/api/{service}/callback
 {SERVICE}_API_KEY=your_api_key  # For API key-based auth
+
+# Twilio SMS credentials (example)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
 ```
 
 Update `server/config.py`:
@@ -323,6 +328,22 @@ cat ~/.openpoke/{service}_token.json | python3 -m json.tool
   - `/v1/routines` - Training routines
   - `/v1/routine_folders` - Routine organization
 
+### Twilio SMS API
+
+- Base URL: `https://api.twilio.com/2010-04-01/`
+- Auth: Basic authentication (Account SID + Auth Token)
+- Webhook: `/api/v1/sms/webhook` - Receives incoming SMS messages
+- Integration:
+  - Two-way SMS communication
+  - Incoming messages processed through interaction agent
+  - Responses sent automatically via Twilio
+  - Requires public webhook URL (use ngrok for local development)
+- Setup:
+  1. Get Twilio Account SID and Auth Token from console.twilio.com
+  2. Purchase a phone number in Twilio
+  3. Configure webhook URL in Twilio phone number settings
+  4. Add credentials to `.env` or connect via Settings modal
+
 ## File Structure Reference
 
 ```
@@ -341,12 +362,15 @@ openpoke/
 │   ├── routes/
 │   │   ├── __init__.py          # Route registration
 │   │   ├── whoop.py             # Whoop API routes
-│   │   └── hevy.py              # Hevy API routes
+│   │   ├── hevy.py              # Hevy API routes
+│   │   └── sms.py               # SMS/Twilio API routes
 │   └── services/
 │       ├── whoop/
 │       │   └── client.py        # Whoop service client
-│       └── hevy/
-│           └── client.py        # Hevy service client
+│       ├── hevy/
+│       │   └── client.py        # Hevy service client
+│       └── sms/
+│           └── client.py        # SMS/Twilio service client
 ├── web/
 │   ├── app/
 │   │   ├── page.tsx             # Main chat interface
@@ -363,7 +387,8 @@ openpoke/
 └── ~/.openpoke/                 # User data directory
     ├── whoop_token.json
     ├── whoop_oauth_state.txt
-    └── hevy_api_key.json
+    ├── hevy_api_key.json
+    └── sms_config.json
 ```
 
 ## Best Practices

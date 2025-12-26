@@ -135,6 +135,16 @@ export default function SettingsModal({
   const [isConnectingHevy, setIsConnectingHevy] = useState(false);
   const [isDisconnectingHevy, setIsDisconnectingHevy] = useState(false);
 
+  // SMS state
+  const [smsConnected, setSmsConnected] = useState(false);
+  const [smsStatusMessage, setSmsStatusMessage] = useState('');
+  const [smsPhoneNumber, setSmsPhoneNumber] = useState('');
+  const [twilioAccountSid, setTwilioAccountSid] = useState('');
+  const [twilioAuthToken, setTwilioAuthToken] = useState('');
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('');
+  const [isConnectingSms, setIsConnectingSms] = useState(false);
+  const [isDisconnectingSms, setIsDisconnectingSms] = useState(false);
+
   const readStoredUserId = useCallback(() => {
     if (typeof window === 'undefined') return '';
     try {
@@ -239,6 +249,22 @@ export default function SettingsModal({
       } catch {}
     };
     void checkHevyStatus();
+  }, []);
+
+  // Check SMS connection status on mount
+  useEffect(() => {
+    const checkSmsStatus = async () => {
+      try {
+        const resp = await fetch('/api/sms/status');
+        const data = await resp.json();
+        if (data?.connected) {
+          setSmsConnected(true);
+          setSmsPhoneNumber(data.phone_number || '');
+          setSmsStatusMessage(`SMS enabled: ${data.phone_number || 'connected'}`);
+        }
+      } catch {}
+    };
+    void checkSmsStatus();
   }, []);
 
   const gmailProfileDetails = useMemo(() => {
@@ -544,6 +570,74 @@ export default function SettingsModal({
     }
   }, []);
 
+  const handleConnectSms = useCallback(async () => {
+    if (!twilioAccountSid.trim() || !twilioAuthToken.trim() || !twilioPhoneNumber.trim()) {
+      setSmsStatusMessage('Please fill in all Twilio credentials');
+      return;
+    }
+
+    try {
+      setIsConnectingSms(true);
+      setSmsStatusMessage('Connecting to Twilio...');
+      const resp = await fetch('/api/sms/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_sid: twilioAccountSid.trim(),
+          auth_token: twilioAuthToken.trim(),
+          phone_number: twilioPhoneNumber.trim(),
+        }),
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.ok) {
+        setSmsStatusMessage(data?.error || 'Failed to connect to Twilio');
+        return;
+      }
+
+      setSmsConnected(true);
+      setSmsPhoneNumber(data.phone_number || twilioPhoneNumber);
+      setSmsStatusMessage(`SMS enabled: ${data.phone_number || twilioPhoneNumber}`);
+      setTwilioAccountSid('');
+      setTwilioAuthToken('');
+      setTwilioPhoneNumber('');
+    } catch (e: any) {
+      setSmsStatusMessage(e?.message || 'Failed to connect SMS');
+    } finally {
+      setIsConnectingSms(false);
+    }
+  }, [twilioAccountSid, twilioAuthToken, twilioPhoneNumber]);
+
+  const handleDisconnectSms = useCallback(async () => {
+    if (typeof window !== 'undefined') {
+      const proceed = window.confirm('Disconnect SMS from OpenPoke?');
+      if (!proceed) return;
+    }
+
+    try {
+      setIsDisconnectingSms(true);
+      setSmsStatusMessage('Disconnecting SMS...');
+      const resp = await fetch('/api/sms/disconnect', { method: 'POST' });
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.ok) {
+        setSmsStatusMessage(data?.error || 'Failed to disconnect');
+        return;
+      }
+
+      setSmsConnected(false);
+      setSmsPhoneNumber('');
+      setSmsStatusMessage('SMS disconnected');
+      setTwilioAccountSid('');
+      setTwilioAuthToken('');
+      setTwilioPhoneNumber('');
+    } catch (e: any) {
+      setSmsStatusMessage(e?.message || 'Failed to disconnect SMS');
+    } finally {
+      setIsDisconnectingSms(false);
+    }
+  }, []);
+
   useEffect(() => {
     setTimezone(settings.timezone);
   }, [settings]);
@@ -816,6 +910,119 @@ export default function SettingsModal({
                     aria-busy={isDisconnectingHevy}
                   >
                     {isDisconnectingHevy ? 'Disconnecting…' : 'Disconnect'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* SMS Integration */}
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">SMS Text Messaging</div>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Connect Twilio to text with your AI assistant. Text messages will be processed
+                    just like chat messages.
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
+                    smsConnected
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  }`}
+                >
+                  {smsConnected ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+
+              {!smsConnected && (
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Twilio Account SID
+                    </label>
+                    <input
+                      className="input w-full"
+                      type="text"
+                      value={twilioAccountSid}
+                      onChange={(e) => setTwilioAccountSid(e.target.value)}
+                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      disabled={isConnectingSms}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Twilio Auth Token
+                    </label>
+                    <input
+                      className="input w-full"
+                      type="password"
+                      value={twilioAuthToken}
+                      onChange={(e) => setTwilioAuthToken(e.target.value)}
+                      placeholder="Your Twilio auth token"
+                      disabled={isConnectingSms}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Twilio Phone Number
+                    </label>
+                    <input
+                      className="input w-full"
+                      type="text"
+                      value={twilioPhoneNumber}
+                      onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                      placeholder="+1234567890"
+                      disabled={isConnectingSms}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Your Twilio phone number (include country code, e.g., +1 for US)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {smsConnected && smsPhoneNumber && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">Active number:</span> {smsPhoneNumber}
+                  </p>
+                </div>
+              )}
+
+              <div
+                className="mt-4 rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500"
+                aria-live="polite"
+              >
+                {smsStatusMessage || 'Enter your Twilio credentials to enable SMS.'}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {!smsConnected ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={handleConnectSms}
+                    disabled={
+                      isConnectingSms ||
+                      !twilioAccountSid.trim() ||
+                      !twilioAuthToken.trim() ||
+                      !twilioPhoneNumber.trim()
+                    }
+                    aria-busy={isConnectingSms}
+                  >
+                    {isConnectingSms ? 'Connecting…' : 'Connect SMS'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="rounded-md border border-transparent bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleDisconnectSms}
+                    disabled={isDisconnectingSms}
+                    aria-busy={isDisconnectingSms}
+                  >
+                    {isDisconnectingSms ? 'Disconnecting…' : 'Disconnect'}
                   </button>
                 )}
               </div>

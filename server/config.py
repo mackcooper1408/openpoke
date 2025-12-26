@@ -76,6 +76,11 @@ class Settings(BaseModel):
     # Hevy integration
     hevy_api_key: Optional[str] = Field(default=os.getenv("HEVY_API_KEY"))
 
+    # Twilio SMS integration
+    twilio_account_sid: Optional[str] = Field(default=os.getenv("TWILIO_ACCOUNT_SID"))
+    twilio_auth_token: Optional[str] = Field(default=os.getenv("TWILIO_AUTH_TOKEN"))
+    twilio_phone_number: Optional[str] = Field(default=os.getenv("TWILIO_PHONE_NUMBER"))
+
     # HTTP behaviour
     cors_allow_origins_raw: str = Field(
         default=os.getenv("OPENPOKE_CORS_ALLOW_ORIGINS", "*")

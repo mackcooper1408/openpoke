@@ -4,7 +4,9 @@ OpenPoke is a simplified, open-source take on [Interaction Company’s](https://
 
 - Multi-agent FastAPI backend that mirrors Poke's interaction/execution split, powered by [OpenRouter](https://openrouter.ai/).
 - Gmail tooling via [Composio](https://composio.dev/) for drafting/replying/forwarding without leaving chat.
+- **SMS text messaging** via [Twilio](https://www.twilio.com/) for on-the-go assistant interactions. 📱
 - Trigger scheduler and background watchers for reminders and "important email" alerts.
+- Fitness tracking integrations with [Whoop](https://www.whoop.com/) and [Hevy](https://www.hevyapp.com/).
 - Next.js web UI that proxies everything through the shared `.env`, so plugging in API keys is the only setup.
 
 ## Requirements
@@ -70,6 +72,11 @@ OpenPoke is a simplified, open-source take on [Interaction Company’s](https://
    npm run dev --prefix web
    ```
 9. **Connect Gmail for email workflows.** With both services running, open [http://localhost:3000](http://localhost:3000), head to *Settings → Gmail*, and complete the Composio OAuth flow. This step is required for email drafting, replies, and the important-email monitor.
+
+10. **(Optional) Enable SMS text messaging.** To text with your assistant:
+    - See [SMS_QUICKSTART.md](SMS_QUICKSTART.md) for a 5-minute setup guide
+    - Or [SMS_SETUP_GUIDE.md](SMS_SETUP_GUIDE.md) for detailed instructions
+    - Requires a free [Twilio](https://www.twilio.com/try-twilio) account
 
 The web app proxies API calls to the Python server using the values in `.env`, so keeping both processes running is required for end-to-end flows.
 
