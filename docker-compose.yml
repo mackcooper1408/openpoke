@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - '8001:8001'
+    volumes:
+      - ./server/data:/app/server/data
+      - openpoke_config:/root/.openpoke
+    environment:
+      - OPENPOKE_HOST=0.0.0.0
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        # Set to empty string to use relative paths for backend calls from browser
+        NEXT_PUBLIC_BACKEND_URL: ''
+    ports:
+      - '3000:3000'
+    environment:
+      - PY_SERVER_URL=http://backend:8001
+      # This should be your public URL (e.g. https://example.com or http://YOUR_IP)
+      # Used for OAuth redirects. Defaults to localhost if not set.
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  openpoke_config:
+  caddy_data:
+  caddy_config:

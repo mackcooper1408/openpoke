@@ -459,7 +459,7 @@ export default function SettingsModal({
       setIsConnectingWhoop(true);
       setWhoopStatusMessage('Opening Whoop authorization...');
       // Redirect directly to backend which will redirect to Whoop OAuth
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8001';
       window.location.href = `${backendUrl}/api/v1/whoop/connect`;
     } catch (e: any) {
       setWhoopStatusMessage(e?.message || 'Failed to connect Whoop');
